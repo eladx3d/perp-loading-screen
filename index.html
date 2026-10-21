@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>IsraelRP - Loading</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;800;900&family=Rubik+Mono+One&display=swap" rel="stylesheet">
+<!--
+  IsraelRP loading screen. Served through sv_loadingurl.
+
+  GMod renders this in its own old Chromium, so the same bans as the phone apply:
+  no flexbox gap, no backdrop-filter, no CSS grid, no clamp/min/max, no inset,
+  and ES5 JavaScript only (var, function, no arrows, no template literals).
+  A modern browser renders all of those fine, which is what makes them dangerous.
+
+  GMod calls GameDetails / SetFilesTotal / SetFilesNeeded / DownloadingFile /
+  SetStatusChanged. With none of them called within ~1.5 s the page assumes it is
+  being viewed in a browser and runs a demo of the whole join, which is also how
+  it is previewed. Add ?demo to force the demo.
+-->
+<style>
+html, body {
+	margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
+	background: #07060d; color: #ebebf0;
+	font-family: 'Heebo', 'Segoe UI', Arial, sans-serif;
+	-webkit-user-select: none; user-select: none; cursor: default;
+}
+#scene { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+#grain { position: absolute; left: 0; top: 0; width: 100%; height: 100%; opacity: .07; pointer-events: none; mix-blend-mode: overlay; }
+.vignette {
+	position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none;
+	background: radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 45%, rgba(3,2,8,.55) 78%, rgba(3,2,8,.92) 100%);
+}
+.pool {
+	position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none;
+	background: radial-gradient(ellipse 55% 30% at 50% 33%, rgba(5,3,12,.62) 0%, rgba(5,3,12,0) 100%),
+	            linear-gradient(to top, rgba(5,3,12,.9) 0%, rgba(5,3,12,0) 34%);
+}
+.corner { position: absolute; width: 34px; height: 34px; border-color: rgba(190,60,255,.55); border-style: solid; pointer-events: none; }
+.corner.tl { left: 18px; top: 18px; border-width: 2px 0 0 2px; }
+.corner.tr { right: 18px; top: 18px; border-width: 2px 2px 0 0; }
+.corner.bl { left: 18px; bottom: 18px; border-width: 0 0 2px 2px; }
+.corner.br { right: 18px; bottom: 18px; border-width: 0 2px 2px 0; }
+.chip .live { color: #ff4f7a; font-weight: 800; margin-right: 6px; }
+.scan {
+	position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; opacity: .18;
+	background: repeating-linear-gradient(to bottom, rgba(255,255,255,.04) 0, rgba(255,255,255,.04) 1px, rgba(0,0,0,0) 2px, rgba(0,0,0,0) 4px);
+}
+.sweep {
+	position: absolute; left: 0; top: -20%; width: 100%; height: 25%; pointer-events: none; opacity: .06;
+	background: linear-gradient(to bottom, rgba(190,60,255,0), rgba(190,60,255,1), rgba(190,60,255,0));
+	-webkit-animation: sweep 7s linear infinite; animation: sweep 7s linear infinite;
+}
+@-webkit-keyframes sweep { from { -webkit-transform: translateY(0); } to { -webkit-transform: translateY(520%); } }
+@keyframes sweep { from { transform: translateY(0); } to { transform: translateY(520%); } }
+
+/* #ui is laid out at a fixed 1920x1080-ish design size and scaled to the window by fit(). */
+#ui { position: absolute; left: 0; top: 0; width: 100%; height: 100%; -webkit-transform-origin: 0 0; transform-origin: 0 0; }
+
+/* ---------- top bar ---------- */
+.top {
+	position: absolute; top: 34px; left: 44px; right: 44px; height: 56px;
+	display: flex; align-items: center; justify-content: space-between;
+	opacity: 0; -webkit-animation: drop .9s .3s cubic-bezier(.2,.8,.2,1) forwards; animation: drop .9s .3s cubic-bezier(.2,.8,.2,1) forwards;
+}
+.brand { display: flex; align-items: center; }
+.badge {
+	width: 46px; height: 46px; border-radius: 12px; margin-left: 14px;
+	background: linear-gradient(135deg, #be3cff, #7846ff);
+	box-shadow: 0 0 24px rgba(190,60,255,.55), inset 0 0 0 1px rgba(255,255,255,.25);
+	display: flex; align-items: center; justify-content: center;
+	font-family: 'Rubik Mono One', 'Heebo', sans-serif; font-size: 18px; color: #fff;
+}
+.brand .t1 { font-weight: 800; font-size: 22px; letter-spacing: .5px; }
+.brand .t2 { font-size: 13px; color: #9a9aaa; margin-top: -2px; direction: ltr; text-align: right; }
+.chips { display: flex; direction: ltr; }
+.chip {
+	margin-left: 10px; padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 600;
+	background: rgba(26,26,32,.72); border: 1px solid rgba(255,255,255,.08); color: #c9c9d6;
+	box-shadow: 0 6px 20px rgba(0,0,0,.35);
+}
+.chip b { color: #fff; font-weight: 800; margin-left: 6px; }
+.chip .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #50dc8c; margin-right: 7px; box-shadow: 0 0 8px #50dc8c; -webkit-animation: pulse 1.6s infinite; animation: pulse 1.6s infinite; }
+@-webkit-keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+
+/* ---------- centre logo ---------- */
+.hero {
+	position: absolute; left: 0; right: 0; top: 23%; text-align: center; direction: ltr;
+}
+.logo {
+	position: relative; display: inline-block;
+	font-family: 'Rubik Mono One', 'Heebo', sans-serif; font-size: 104px; line-height: 1; letter-spacing: 4px;
+	color: #fff; opacity: 0;
+	-webkit-animation: rise 1.4s .5s cubic-bezier(.16,1,.3,1) forwards; animation: rise 1.4s .5s cubic-bezier(.16,1,.3,1) forwards;
+}
+.logo .main {
+	position: relative; display: block;
+	background: linear-gradient(100deg, #ffffff 0%, #ffffff 38%, #f3c8ff 46%, #ffffff 54%, #ffffff 100%);
+	background-size: 300% 100%;
+	-webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+	-webkit-animation: sheen 5s 2s ease-in-out infinite; animation: sheen 5s 2s ease-in-out infinite;
+	filter: drop-shadow(0 0 18px rgba(190,60,255,.65)) drop-shadow(0 0 60px rgba(120,70,255,.45));
+}
+.logo .g1, .logo .g2 {
+	position: absolute; left: 0; top: 0; width: 100%; opacity: 0; pointer-events: none;
+}
+.logo .g1 { color: #ff2f6d; }
+.logo .g2 { color: #2fd9ff; }
+.logo.glitch .g1 { opacity: .8; -webkit-animation: g1 .32s steps(2) 1; animation: g1 .32s steps(2) 1; }
+.logo.glitch .g2 { opacity: .8; -webkit-animation: g2 .32s steps(2) 1; animation: g2 .32s steps(2) 1; }
+.logo.glitch .main { -webkit-transform: skewX(-6deg); transform: skewX(-6deg); }
+@-webkit-keyframes g1 { 0% { clip-path: inset(10% 0 60% 0); -webkit-transform: translate(-6px,0); } 50% { clip-path: inset(55% 0 20% 0); -webkit-transform: translate(5px,0); } 100% { clip-path: inset(30% 0 40% 0); -webkit-transform: translate(-3px,0); } }
+@keyframes g1 { 0% { clip-path: inset(10% 0 60% 0); transform: translate(-6px,0); } 50% { clip-path: inset(55% 0 20% 0); transform: translate(5px,0); } 100% { clip-path: inset(30% 0 40% 0); transform: translate(-3px,0); } }
+@-webkit-keyframes g2 { 0% { clip-path: inset(60% 0 10% 0); -webkit-transform: translate(6px,0); } 50% { clip-path: inset(15% 0 65% 0); -webkit-transform: translate(-5px,0); } 100% { clip-path: inset(40% 0 30% 0); -webkit-transform: translate(3px,0); } }
+@keyframes g2 { 0% { clip-path: inset(60% 0 10% 0); transform: translate(6px,0); } 50% { clip-path: inset(15% 0 65% 0); transform: translate(-5px,0); } 100% { clip-path: inset(40% 0 30% 0); transform: translate(3px,0); } }
+@-webkit-keyframes sheen { 0% { background-position: 100% 0; } 60%,100% { background-position: 0% 0; } }
+@keyframes sheen { 0% { background-position: 100% 0; } 60%,100% { background-position: 0% 0; } }
+@-webkit-keyframes rise { from { opacity: 0; -webkit-transform: translateY(30px) scale(.94); -webkit-filter: blur(12px); } to { opacity: 1; -webkit-transform: none; -webkit-filter: none; } }
+@keyframes rise { from { opacity: 0; transform: translateY(30px) scale(.94); filter: blur(12px); } to { opacity: 1; transform: none; filter: none; } }
+@-webkit-keyframes drop { from { opacity: 0; -webkit-transform: translateY(-16px); } to { opacity: 1; -webkit-transform: none; } }
+@keyframes drop { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: none; } }
+@-webkit-keyframes up { from { opacity: 0; -webkit-transform: translateY(24px); } to { opacity: 1; -webkit-transform: none; } }
+@keyframes up { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+
+.tagline {
+	margin-top: 18px; font-size: 15px; font-weight: 600; letter-spacing: 9px; text-transform: uppercase; color: #b8a6d9;
+	opacity: 0; -webkit-animation: up 1s 1.2s ease forwards; animation: up 1s 1.2s ease forwards;
+}
+.tagline span { color: #be3cff; }
+.server {
+	margin-top: 14px; font-size: 18px; font-weight: 400; color: #8f8fa3; direction: rtl; unicode-bidi: plaintext;
+	opacity: 0; -webkit-animation: up 1s 1.5s ease forwards; animation: up 1s 1.5s ease forwards;
+}
+
+/* ---------- bottom panel ---------- */
+.panel {
+	position: absolute; left: 44px; right: 44px; bottom: 40px;
+	opacity: 0; -webkit-animation: up 1s .9s cubic-bezier(.2,.8,.2,1) forwards; animation: up 1s .9s cubic-bezier(.2,.8,.2,1) forwards;
+}
+.row { display: flex; align-items: flex-end; justify-content: space-between; }
+
+.status-col { -webkit-box-flex: 1; flex: 1; min-width: 0; margin-left: 24px; }
+.stages { display: flex; margin-bottom: 18px; }
+.stage {
+	display: flex; align-items: center; margin-left: 22px; font-size: 14px; font-weight: 600; color: #6a6a7c;
+	-webkit-transition: color .5s; transition: color .5s;
+}
+.stage i {
+	display: inline-block; width: 26px; height: 26px; line-height: 26px; text-align: center; border-radius: 50%;
+	margin-left: 9px; font-style: normal; font-size: 12px; font-weight: 800;
+	background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); color: #777;
+	-webkit-transition: all .5s; transition: all .5s;
+}
+.stage.on { color: #fff; }
+.stage.on i { background: linear-gradient(135deg,#be3cff,#7846ff); border-color: transparent; color: #fff; box-shadow: 0 0 16px rgba(190,60,255,.8); -webkit-animation: pulse 1.2s infinite; animation: pulse 1.2s infinite; }
+.stage.done { color: #b9b9c8; }
+.stage.done i { background: rgba(80,220,140,.15); border-color: rgba(80,220,140,.6); color: #50dc8c; }
+
+.status { font-size: 24px; font-weight: 800; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.status .cursor { display: inline-block; width: 9px; height: 22px; background: #be3cff; margin-right: 6px; vertical-align: -3px; -webkit-animation: pulse 1s steps(1) infinite; animation: pulse 1s steps(1) infinite; }
+.file { font-size: 13px; color: #7d7d92; direction: ltr; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; height: 18px; font-family: Consolas, 'Courier New', monospace; }
+
+.pct { text-align: left; direction: ltr; min-width: 200px; }
+.pct .num { font-family: 'Rubik Mono One', 'Heebo', sans-serif; font-size: 64px; line-height: 1; color: #fff; text-shadow: 0 0 26px rgba(190,60,255,.7); }
+.pct .num small { font-size: 26px; color: #be3cff; margin-left: 4px; }
+.pct .meta { font-size: 13px; color: #8a8a9c; margin-top: 6px; font-weight: 600; }
+.pct .meta b { color: #d6d6e2; }
+
+.bar {
+	position: relative; height: 12px; margin-top: 18px; border-radius: 99px; overflow: visible;
+	background: rgba(255,255,255,.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07);
+	direction: ltr;
+}
+.bar .ticks { position: absolute; left: 0; top: 0; width: 100%; height: 100%; border-radius: 99px; opacity: .5;
+	background: repeating-linear-gradient(90deg, rgba(255,255,255,.06) 0, rgba(255,255,255,.06) 1px, rgba(0,0,0,0) 1px, rgba(0,0,0,0) 2%); }
+.bar .fill {
+	position: absolute; left: 0; top: 0; height: 100%; width: 0; border-radius: 99px; overflow: hidden;
+	background: linear-gradient(90deg, #5a3dff, #7846ff 40%, #be3cff 85%, #ff7ae6);
+	box-shadow: 0 0 18px rgba(190,60,255,.75), 0 0 46px rgba(120,70,255,.45);
+}
+.bar .fill:after {
+	content: ''; position: absolute; top: 0; left: -40%; width: 40%; height: 100%;
+	background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.55), rgba(255,255,255,0));
+	-webkit-animation: shimmer 1.8s linear infinite; animation: shimmer 1.8s linear infinite;
+}
+@-webkit-keyframes shimmer { from { left: -40%; } to { left: 110%; } }
+@keyframes shimmer { from { left: -40%; } to { left: 110%; } }
+.bar .head {
+	position: absolute; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
+	background: radial-gradient(circle, #fff 0, #ffd5ff 25%, rgba(190,60,255,.6) 50%, rgba(190,60,255,0) 72%);
+	left: 0;
+}
+#sparks { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
+
+/* ---------- tip card ---------- */
+.tip {
+	position: absolute; right: 44px; top: 50%; width: 360px; margin-top: -40px;
+	padding: 20px 22px 18px; border-radius: 16px;
+	background: linear-gradient(160deg, rgba(34,34,42,.85), rgba(18,18,24,.85));
+	border: 1px solid rgba(255,255,255,.08);
+	box-shadow: 0 20px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05);
+	opacity: 0; -webkit-animation: up 1s 1.8s ease forwards; animation: up 1s 1.8s ease forwards;
+}
+.tip:before { content: ''; position: absolute; right: 0; top: 18px; bottom: 18px; width: 3px; border-radius: 3px; background: linear-gradient(#be3cff, #7846ff); box-shadow: 0 0 12px #be3cff; }
+.tip .hd { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 800; letter-spacing: 2px; color: #be3cff; margin-bottom: 12px; }
+.tip .hd svg { width: 22px; height: 22px; -webkit-transform: rotate(-90deg); transform: rotate(-90deg); }
+.tip .body { min-height: 76px; -webkit-transition: opacity .45s, -webkit-transform .45s; transition: opacity .45s, transform .45s; }
+.tip .body.out { opacity: 0; -webkit-transform: translateX(-14px); transform: translateX(-14px); }
+.tip h3 { margin: 0 0 6px; font-size: 19px; font-weight: 800; color: #fff; }
+.tip p { margin: 0; font-size: 15px; line-height: 1.55; color: #b4b4c4; }
+kbd {
+	display: inline-block; min-width: 14px; padding: 1px 7px; margin: 0 2px; border-radius: 6px;
+	font-family: 'Heebo', sans-serif; font-size: 13px; font-weight: 800; color: #fff; text-align: center; direction: ltr;
+	background: linear-gradient(#3a3a48, #262630); border: 1px solid #4a4a5c; border-bottom-width: 3px;
+}
+
+/* ---------- first-download notice ---------- */
+.notice {
+	position: absolute; left: 44px; top: 50%; width: 330px; margin-top: -40px;
+	padding: 16px 18px; border-radius: 14px; font-size: 14px; line-height: 1.55; color: #d9cfee;
+	background: rgba(120,70,255,.12); border: 1px solid rgba(190,60,255,.35);
+	box-shadow: 0 0 40px rgba(120,70,255,.18);
+	display: none; -webkit-animation: up .8s ease forwards; animation: up .8s ease forwards;
+}
+.notice b { color: #fff; }
+
+
+.ready .status { color: #50dc8c; }
+.ready .bar .fill { background: linear-gradient(90deg, #2bb673, #50dc8c, #b6ffd8); box-shadow: 0 0 22px rgba(80,220,140,.8); }
+
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<div class="sweep"></div>
+<div class="pool"></div>
+<div class="vignette"></div>
+<div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+<div class="scan"></div>
+<canvas id="grain"></canvas>
+
+<div id="ui">
+	<div class="top">
+		<div class="brand">
+			<div class="badge">IL</div>
+			<div>
+				<div class="t1">IsraelRP</div>
+			</div>
+		</div>
+		<div class="chips">
+			<div class="chip"><span class="dot"></span>MAP <b id="map">rp_evocity_v33x</b></div>
+			<div class="chip">SLOTS <b id="slots">--</b></div>
+			<div class="chip">TIME <b id="elapsed">0:00</b></div>
+			<div class="chip"><span class="live">&#9679; LIVE</span>DISPATCH <b id="calls">0</b></div>
+		</div>
+	</div>
+
+	<div class="hero">
+		<div class="logo" id="logo">
+			<span class="main">IsraelRP</span>
+			<span class="g1">IsraelRP</span>
+			<span class="g2">IsraelRP</span>
+		</div>
+		<div class="tagline">Israel <span>&bull;</span> Police <span>&bull;</span> Roleplay</div>
+		<div class="server" id="server">מתחבר לעיר...</div>
+	</div>
+
+	<div class="notice" id="notice">
+		<b>הורדה ראשונה?</b><br>
+		השרת מוריד עכשיו את כל התוכן שלו &mdash; רכבים, נשקים, מפה ודמויות. זה קורה <b>פעם אחת בלבד</b>, ובכניסה הבאה זה ייקח שניות.
+	</div>
+
+	<div class="tip">
+		<div class="hd">
+			<span>טיפ</span>
+			<svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="3"></circle><circle id="tipRing" cx="18" cy="18" r="15" fill="none" stroke="#be3cff" stroke-width="3" stroke-linecap="round" stroke-dasharray="94.25" stroke-dashoffset="94.25"></circle></svg>
+		</div>
+		<div class="body" id="tipBody"><h3></h3><p></p></div>
+	</div>
+
+	<div class="panel" id="panel">
+		<div class="row">
+			<div class="status-col">
+				<div class="stages" id="stages">
+					<div class="stage"><i>1</i>התחברות</div>
+					<div class="stage"><i>2</i>הורדת תוכן</div>
+					<div class="stage"><i>3</i>טעינת העיר</div>
+					<div class="stage"><i>4</i>כניסה</div>
+				</div>
+				<div class="status"><span id="status">מתחבר לשרת</span><span class="cursor"></span></div>
+				<div class="file" id="file"></div>
+			</div>
+			<div class="pct">
+				<div class="num"><span id="pct">0</span><small>%</small></div>
+				<div class="meta" id="meta">&nbsp;</div>
+			</div>
+		</div>
+		<div class="bar">
+			<div class="ticks"></div>
+			<div class="fill" id="fill"></div>
+			<div class="head" id="head"></div>
+		</div>
+	</div>
+</div>
+<canvas id="sparks"></canvas>
+
+<script src="roads.js"></script>
+<script>
+(function () {
+	'use strict';
+
+	// ------------------------------------------------------------------
+	// helpers
+	// ------------------------------------------------------------------
+	function $(id) { return document.getElementById(id); }
+	function rand(a, b) { return a + Math.random() * (b - a); }
+	function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+	function lerp(a, b, t) { return a + (b - a) * t; }
+	function store(k, v) { try { if (v === undefined) { return window.localStorage.getItem(k); } window.localStorage.setItem(k, v); } catch (e) {} return null; }
+	var raf = window.requestAnimationFrame || window.webkitRequestAnimationFrame || function (f) { return setTimeout(function () { f(Date.now()); }, 16); };
+	var now = (window.performance && performance.now) ? function () { return performance.now(); } : function () { return Date.now(); };
+
+	// ------------------------------------------------------------------
+	// SCENE: Evocity at night from above, as a dispatch screen.
+	// The picture is the phone's top-down capture graded to night
+	// (citymap_night.jpg), and roads.js is the hand-drawn road graph in the
+	// same pixel space -- so every unit below drives on a real road.
+	// ------------------------------------------------------------------
+	var cv = $('scene'), cx = cv.getContext('2d');
+	var W = 0, H = 0, mouseX = 0, mouseY = 0;
+	var R = window.ROADS || { w: 1197, h: 1324, nodes: [], edges: [] };
+	var NODES = R.nodes, ADJ = [], LIGHTS = [], roadPath = null;
+	var mapImg = new Image(), mapReady = false;
+	mapImg.onload = function () { mapReady = true; };
+	mapImg.src = 'citymap_night.jpg';
+
+	// camera, in map pixels; zoom is screen px per map px at 1080p
+	var cam = { x: R.w * 0.5, y: R.h * 0.5, z: 1.4, r: 0, bx: 0, by: 0 };
+	var camT = { x: cam.x, y: cam.y, z: cam.z, r: 0 }, nextShot = 0;
+	var units = [], incidents = [], nextIncident = 2500, FOCUS_Y = 0.6;
+
+	function dist(a, b) { var dx = a[0] - b[0], dy = a[1] - b[1]; return Math.sqrt(dx * dx + dy * dy); }
+
+	(function buildGraph() {
+		var i;
+		for (i = 0; i < NODES.length; i++) { ADJ.push([]); }
+		for (i = 0; i < R.edges.length; i++) {
+			var a = R.edges[i][0], b = R.edges[i][1], d = dist(NODES[a], NODES[b]);
+			ADJ[a].push({ n: b, d: d }); ADJ[b].push({ n: a, d: d });
+			// street lights every ~26 px along the road
+			var k = Math.floor(d / 26);
+			for (var j = 1; j <= k; j++) {
+				var f = j / (k + 1);
+				LIGHTS.push({ x: lerp(NODES[a][0], NODES[b][0], f), y: lerp(NODES[a][1], NODES[b][1], f), p: Math.random() * 6.28 });
+			}
+		}
+		if (window.Path2D) {
+			roadPath = new Path2D();
+			for (i = 0; i < R.edges.length; i++) {
+				roadPath.moveTo(NODES[R.edges[i][0]][0], NODES[R.edges[i][0]][1]);
+				roadPath.lineTo(NODES[R.edges[i][1]][0], NODES[R.edges[i][1]][1]);
+			}
+		}
+	}());
+
+	function strokeRoads() {
+		if (roadPath) { cx.stroke(roadPath); return; }
+		cx.beginPath();
+		for (var i = 0; i < R.edges.length; i++) {
+			cx.moveTo(NODES[R.edges[i][0]][0], NODES[R.edges[i][0]][1]);
+			cx.lineTo(NODES[R.edges[i][1]][0], NODES[R.edges[i][1]][1]);
+		}
+		cx.stroke();
+	}
+
+	// Dijkstra over 152 nodes -- small enough to run on demand.
+	function route(from, to) {
+		var n = NODES.length, d = [], prev = [], done = [], i;
+		for (i = 0; i < n; i++) { d[i] = Infinity; prev[i] = -1; done[i] = false; }
+		d[from] = 0;
+		for (;;) {
+			var u = -1, best = Infinity;
+			for (i = 0; i < n; i++) { if (!done[i] && d[i] < best) { best = d[i]; u = i; } }
+			if (u < 0 || u === to) { break; }
+			done[u] = true;
+			for (i = 0; i < ADJ[u].length; i++) {
+				var e = ADJ[u][i];
+				if (d[u] + e.d < d[e.n]) { d[e.n] = d[u] + e.d; prev[e.n] = u; }
+			}
+		}
+		if (d[to] === Infinity) { return null; }
+		var path = [to];
+		while (path[0] !== from) { path.unshift(prev[path[0]]); }
+		return { path: path, len: d[to] };
+	}
+
+	// ---------- units ----------
+	var KINDS = {
+		police: { speed: 34, a: '255,60,90', b: '60,140,255', size: 4.5, trail: 46 },
+		ems:    { speed: 32, a: '255,255,255', b: '255,70,90', size: 4.5, trail: 40 },
+		fire:   { speed: 30, a: '255,120,40', b: '255,60,40', size: 4.5, trail: 40 },
+		taxi:   { speed: 30, a: '255,205,60', b: '255,205,60', size: 3.5, trail: 34 },
+		car:    { speed: 26, a: '230,225,255', b: '230,225,255', size: 2.6, trail: 26 }
+	};
+	function spawnUnit(kind) {
+		if (!NODES.length) { return; }
+		var a = Math.floor(Math.random() * NODES.length);
+		if (!ADJ[a].length) { return; }
+		var b = ADJ[a][Math.floor(Math.random() * ADJ[a].length)].n;
+		units.push({ kind: kind, k: KINDS[kind], from: a, to: b, f: Math.random(), prev: -1, trail: [], route: null, job: null, phase: Math.random() * 1000 });
+	}
+	function unitPos(u) {
+		var A = NODES[u.from], B = NODES[u.to];
+		return [lerp(A[0], B[0], u.f), lerp(A[1], B[1], u.f)];
+	}
+	function advanceUnit(u, dt) {
+		var speed = u.k.speed * (u.job ? 2.3 : 1);
+		var left = speed * dt / 1000;
+		var guard = 0;
+		while (left > 0 && guard++ < 8) {
+			var len = dist(NODES[u.from], NODES[u.to]) || 1;
+			var remain = (1 - u.f) * len;
+			if (left < remain) { u.f += left / len; left = 0; break; }
+			left -= remain;
+			// arrived at u.to: choose the next edge
+			var at = u.to, next = -1;
+			if (u.route && u.route.length) {
+				next = u.route.shift();
+			} else {
+				if (u.job) { arrive(u); }
+				var opts = ADJ[at], pick = [];
+				for (var i = 0; i < opts.length; i++) { if (opts[i].n !== u.from) { pick.push(opts[i].n); } }
+				next = pick.length ? pick[Math.floor(Math.random() * pick.length)] : u.from;
+			}
+			u.prev = u.from; u.from = at; u.to = next; u.f = 0;
+		}
+		var p = unitPos(u);
+		u.trail.push(p);
+		if (u.trail.length > u.k.trail) { u.trail.shift(); }
+	}
+
+	// ---------- incidents ----------
+	var CALLS = [
+		{ code: '10-31', he: 'אזעקת פריצה', kind: 'police', col: '255,60,90' },
+		{ code: '10-50', he: 'תאונת דרכים', kind: 'police', col: '255,170,60' },
+		{ code: '10-70', he: 'שריפה', kind: 'fire', col: '255,120,40' },
+		{ code: '10-52', he: 'פצוע במקום', kind: 'ems', col: '255,90,120' },
+		{ code: '10-10', he: 'קטטה ברחוב', kind: 'police', col: '255,60,90' },
+		{ code: '10-90', he: 'שוד בחנות', kind: 'police', col: '255,60,90' },
+		{ code: '10-57', he: 'פגע וברח', kind: 'police', col: '255,170,60' }
+	];
+	function raiseIncident() {
+		if (!NODES.length) { return; }
+		var node = Math.floor(Math.random() * NODES.length);
+		var call = CALLS[Math.floor(Math.random() * CALLS.length)];
+		var inc = { node: node, call: call, born: now(), unit: null, done: 0, path: null };
+		// the nearest free unit of the right service, by road
+		var best = null, bestLen = Infinity;
+		for (var i = 0; i < units.length; i++) {
+			var u = units[i];
+			if (u.kind !== call.kind || u.job) { continue; }
+			var r = route(u.to, node);
+			if (r && r.len < bestLen) { best = u; bestLen = r.len; inc.path = r.path; }
+		}
+		if (best) {
+			best.job = inc; best.route = inc.path.slice(1);
+			if (best.to === node) { best.route = []; }
+			inc.unit = best;
+		}
+		incidents.push(inc);
+		camT.x = NODES[node][0]; camT.y = NODES[node][1]; camT.z = rand(1.9, 2.4); camT.r = rand(-0.06, 0.06);
+		nextShot = now() + 9000;
+	}
+	function arrive(u) {
+		if (u.job) { u.job.done = now(); u.job = null; u.route = null; }
+	}
+
+	// ---------- sprites ----------
+	function glowSprite(rgb, size) {
+		var c = document.createElement('canvas'); c.width = c.height = size;
+		var g = c.getContext('2d'), gr = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+		gr.addColorStop(0, 'rgba(' + rgb + ',1)'); gr.addColorStop(0.25, 'rgba(' + rgb + ',.45)'); gr.addColorStop(1, 'rgba(' + rgb + ',0)');
+		g.fillStyle = gr; g.fillRect(0, 0, size, size);
+		return c;
+	}
+	var SPR_LAMP = glowSprite('255,180,90', 64), SPRITES = {};
+	function spr(rgb) { if (!SPRITES[rgb]) { SPRITES[rgb] = glowSprite(rgb, 128); } return SPRITES[rgb]; }
+
+	function resize() {
+		W = cv.width = window.innerWidth;
+		H = cv.height = window.innerHeight;
+		sparks.width = W; sparks.height = H;
+		grain.width = 256; grain.height = 256;
+		fit();
+	}
+
+	// Scale the interface as one piece, so a 1440p screen gets the same layout as 1080p.
+	function fit() {
+		var s = Math.min(W / 1920, H / 1080);
+		if (s < 0.5) { s = 0.5; }
+		var ui = $('ui');
+		ui.style.width = (W / s) + 'px'; ui.style.height = (H / s) + 'px';
+		ui.style.webkitTransform = 'scale(' + s + ')'; ui.style.transform = 'scale(' + s + ')';
+	}
+
+	function toScreen(p) {
+		var sc = cam.z * (H / 1080), c = Math.cos(cam.r), s = Math.sin(cam.r);
+		var x = (p[0] - cam.x - cam.bx) * sc, y = (p[1] - cam.y - cam.by) * sc;
+		return [W / 2 + x * c - y * s + mouseX * -30, H * FOCUS_Y + x * s + y * c + mouseY * -18];
+	}
+
+	function director(t) {
+		if (t > nextShot) {
+			var n = NODES[Math.floor(Math.random() * NODES.length)] || [R.w / 2, R.h / 2];
+			camT.x = n[0]; camT.y = n[1]; camT.z = rand(1.25, 1.9); camT.r = rand(-0.09, 0.09);
+			nextShot = t + rand(9000, 13000);
+		}
+	}
+
+	function drawMap(t, dt) {
+		director(t);
+		var k = 1 - Math.pow(0.9993, dt);
+		cam.x += (camT.x - cam.x) * k; cam.y += (camT.y - cam.y) * k;
+		cam.z += (camT.z - cam.z) * k; cam.r += (camT.r - cam.r) * k;
+		// a slow breathing drift so the shot is never still
+		var bx = Math.sin(t * 0.00011) * 18, by = Math.cos(t * 0.00009) * 14;
+
+		cx.setTransform(1, 0, 0, 1, 0, 0);
+		cx.fillStyle = '#05040b'; cx.fillRect(0, 0, W, H);
+
+		var sc = cam.z * (H / 1080);
+		cx.setTransform(1, 0, 0, 1, 0, 0);
+		// the focus sits at 60% height, in the gap between the logo and the progress panel
+		cx.translate(W / 2 + mouseX * -30, H * FOCUS_Y + mouseY * -18);
+		cx.rotate(cam.r);
+		cx.scale(sc, sc);
+		cx.translate(-(cam.x + bx), -(cam.y + by));
+		cam.bx = bx; cam.by = by;
+
+		if (mapReady) { cx.drawImage(mapImg, 0, 0); }
+
+		// survey grid
+		cx.lineWidth = 1 / sc;
+		cx.strokeStyle = 'rgba(150,110,255,.10)';
+		cx.beginPath();
+		for (var gx = 0; gx <= R.w; gx += 60) { cx.moveTo(gx, 0); cx.lineTo(gx, R.h); }
+		for (var gy = 0; gy <= R.h; gy += 60) { cx.moveTo(0, gy); cx.lineTo(R.w, gy); }
+		cx.stroke();
+
+		// roads: wide haze, neon core, then traffic flowing along them
+		cx.lineCap = 'round'; cx.lineJoin = 'round';
+		cx.strokeStyle = 'rgba(190,60,255,.10)'; cx.lineWidth = 16 / sc * 1.4; strokeRoads();
+		cx.strokeStyle = 'rgba(190,60,255,.45)'; cx.lineWidth = 2.2 / sc * 1.4; strokeRoads();
+		if (cx.setLineDash) {
+			cx.setLineDash([3 / sc * 3, 16 / sc * 3]);
+			cx.lineDashOffset = -t * 0.012;
+			cx.strokeStyle = 'rgba(255,220,255,.35)'; cx.lineWidth = 1.4 / sc * 1.4; strokeRoads();
+			cx.setLineDash([]);
+		}
+
+		// street lights
+		cx.globalCompositeOperation = 'lighter';
+		var ls = 26 / sc;
+		for (var i = 0; i < LIGHTS.length; i++) {
+			var L = LIGHTS[i];
+			cx.globalAlpha = 0.35 + 0.2 * Math.sin(t * 0.002 + L.p);
+			cx.drawImage(SPR_LAMP, L.x - ls / 2, L.y - ls / 2, ls, ls);
+		}
+		cx.globalAlpha = 1;
+		cx.globalCompositeOperation = 'source-over';
+
+		cx.setTransform(1, 0, 0, 1, 0, 0);
+
+		// ---------- everything below is drawn in screen space ----------
+		if (t > nextIncident) {
+			var open = 0;
+			for (var q = 0; q < incidents.length; q++) { if (!incidents[q].done) { open++; } }
+			if (open < 2) { raiseIncident(); }
+			nextIncident = t + rand(6000, 11000);
+		}
+
+		// response routes
+		for (var r = 0; r < incidents.length; r++) {
+			var inc = incidents[r];
+			if (inc.done || !inc.unit) { continue; }
+			var u = inc.unit, pts = [toScreen(unitPos(u))];
+			pts.push(toScreen(NODES[u.to]));
+			for (var m = 0; m < u.route.length; m++) { pts.push(toScreen(NODES[u.route[m]])); }
+			cx.lineCap = 'round'; cx.lineJoin = 'round';
+			cx.strokeStyle = 'rgba(' + inc.call.col + ',.22)'; cx.lineWidth = 12; polyline(pts);
+			if (cx.setLineDash) { cx.setLineDash([10, 10]); cx.lineDashOffset = -t * 0.06; }
+			cx.strokeStyle = 'rgba(' + inc.call.col + ',.95)'; cx.lineWidth = 3; polyline(pts);
+			if (cx.setLineDash) { cx.setLineDash([]); }
+		}
+
+		// units and their light trails
+		cx.globalCompositeOperation = 'lighter';
+		for (var v = 0; v < units.length; v++) {
+			var un = units[v];
+			advanceUnit(un, dt);
+			var tr = un.trail, prevP = null, n = tr.length;
+			cx.lineWidth = un.k.size * 0.9;
+			for (var j = 0; j < n; j++) {
+				var sp = toScreen(tr[j]);
+				if (prevP) {
+					cx.strokeStyle = 'rgba(' + un.k.a + ',' + (0.55 * j / n) + ')';
+					cx.beginPath(); cx.moveTo(prevP[0], prevP[1]); cx.lineTo(sp[0], sp[1]); cx.stroke();
+				}
+				prevP = sp;
+			}
+			if (!prevP) { continue; }
+			var flash = (un.kind === 'police' || un.kind === 'ems' || un.kind === 'fire') && (Math.floor((t + un.phase) / (un.job ? 120 : 260)) % 2 === 1);
+			var col = flash ? un.k.b : un.k.a, gs = un.k.size * (un.job ? 14 : 8);
+			cx.drawImage(spr(col), prevP[0] - gs / 2, prevP[1] - gs / 2, gs, gs);
+			cx.fillStyle = 'rgba(255,255,255,.95)';
+			cx.beginPath(); cx.arc(prevP[0], prevP[1], un.k.size * 0.6, 0, 6.283); cx.fill();
+		}
+		cx.globalCompositeOperation = 'source-over';
+
+		// incident markers
+		var openCalls = 0;
+		for (var c2 = incidents.length - 1; c2 >= 0; c2--) {
+			var I = incidents[c2], P = toScreen(NODES[I.node]), age = t - I.born;
+			if (I.done && t - I.done > 2600) { incidents.splice(c2, 1); continue; }
+			if (!I.done) { openCalls++; }
+			var colr = I.done ? '80,220,140' : I.call.col;
+			for (var ring = 0; ring < 3; ring++) {
+				var ph = ((age / 1600) + ring / 3) % 1;
+				cx.strokeStyle = 'rgba(' + colr + ',' + (1 - ph) * 0.8 + ')';
+				cx.lineWidth = 2;
+				cx.beginPath(); cx.arc(P[0], P[1], 8 + ph * 70, 0, 6.283); cx.stroke();
+			}
+			cx.globalCompositeOperation = 'lighter';
+			cx.drawImage(spr(colr), P[0] - 40, P[1] - 40, 80, 80);
+			cx.globalCompositeOperation = 'source-over';
+			cx.save(); cx.translate(P[0], P[1]); cx.rotate(0.785);
+			cx.fillStyle = 'rgba(' + colr + ',1)'; cx.fillRect(-6, -6, 12, 12);
+			cx.fillStyle = '#fff'; cx.fillRect(-2.5, -2.5, 5, 5);
+			cx.restore();
+
+			// label card, typed in over half a second
+			var appear = clamp01(age / 500);
+			var line1 = I.call.code + '  ·  ' + (I.done ? 'טופל' : I.call.he);
+			var line2 = I.done ? 'הקריאה נסגרה' : (I.unit ? 'יחידה בדרך' : 'ממתין ליחידה');
+			cx.font = '800 15px Heebo, Arial, sans-serif';
+			var w1 = cx.measureText(line1).width;
+			cx.font = '600 12px Heebo, Arial, sans-serif';
+			var w2 = cx.measureText(line2).width;
+			var bw = Math.max(w1, w2) + 28, bx2 = P[0] + 22, by2 = P[1] - 58;
+			cx.globalAlpha = appear;
+			cx.fillStyle = 'rgba(14,10,26,.86)'; cx.fillRect(bx2, by2, bw * appear, 46);
+			cx.fillStyle = 'rgba(' + colr + ',1)'; cx.fillRect(bx2, by2, 3, 46);
+			cx.strokeStyle = 'rgba(' + colr + ',.6)'; cx.lineWidth = 1;
+			cx.beginPath(); cx.moveTo(P[0] + 6, P[1] - 6); cx.lineTo(bx2, by2 + 46); cx.stroke();
+			if (appear > 0.6) {
+				cx.textAlign = 'right';
+				cx.fillStyle = '#fff'; cx.font = '800 15px Heebo, Arial, sans-serif';
+				cx.fillText(line1, bx2 + bw - 12, by2 + 20);
+				cx.fillStyle = 'rgba(' + colr + ',1)'; cx.font = '600 12px Heebo, Arial, sans-serif';
+				cx.fillText(line2, bx2 + bw - 12, by2 + 37);
+				cx.direction = 'ltr'; cx.textAlign = 'left';
+			}
+			cx.globalAlpha = 1;
+		}
+		$('calls').textContent = openCalls;
+	}
+
+	function polyline(pts) {
+		cx.beginPath();
+		for (var i = 0; i < pts.length; i++) { if (i === 0) { cx.moveTo(pts[i][0], pts[i][1]); } else { cx.lineTo(pts[i][0], pts[i][1]); } }
+		cx.stroke();
+	}
+
+	(function fleet() {
+		var plan = ['police', 'police', 'police', 'police', 'ems', 'ems', 'fire', 'taxi', 'taxi', 'car', 'car', 'car', 'car', 'car', 'car', 'car', 'car'];
+		for (var i = 0; i < plan.length; i++) { spawnUnit(plan[i]); }
+	}());
+
+	// ------------------------------------------------------------------
+	// film grain, redrawn a few times a second
+	// ------------------------------------------------------------------
+	var grain = $('grain'), gx = grain.getContext('2d'), grainT = 0;
+	function drawGrain() {
+		var img = gx.createImageData(256, 256), d = img.data;
+		for (var i = 0; i < d.length; i += 4) { var v = Math.random() * 255; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; }
+		gx.putImageData(img, 0, 0);
+	}
+
+	// ------------------------------------------------------------------
+	// sparks thrown off the head of the progress bar
+	// ------------------------------------------------------------------
+	var sparks = $('sparks'), sx = sparks.getContext('2d'), sparkList = [];
+	function emitSparks(x, y, n) {
+		for (var i = 0; i < n; i++) {
+			sparkList.push({ x: x, y: y, vx: rand(-1.6, 0.6), vy: rand(-2.6, -0.3), life: 1, r: rand(0.8, 2.2), hue: Math.random() < 0.5 ? '255,140,255' : '190,120,255' });
+		}
+	}
+	function drawSparks(dt) {
+		sx.clearRect(0, 0, sparks.width, sparks.height);
+		sx.globalCompositeOperation = 'lighter';
+		for (var i = sparkList.length - 1; i >= 0; i--) {
+			var p = sparkList[i];
+			p.x += p.vx * dt * 0.06; p.y += p.vy * dt * 0.06; p.vy += 0.05 * dt * 0.06; p.life -= dt * 0.0016;
+			if (p.life <= 0) { sparkList.splice(i, 1); continue; }
+			sx.fillStyle = 'rgba(' + p.hue + ',' + p.life + ')';
+			sx.beginPath(); sx.arc(p.x, p.y, p.r * p.life + 0.3, 0, 6.283); sx.fill();
+		}
+		sx.globalCompositeOperation = 'source-over';
+	}
+
+	// ------------------------------------------------------------------
+	// LOADING STATE (fed by GMod)
+	// ------------------------------------------------------------------
+	var S = {
+		started: now(), gotDetails: false,
+		filesTotal: 0, filesNeeded: 0, file: '',
+		status: '', stage: 0, wsDone: 0, wsTotal: 0,
+		target: 0, shown: 0, ready: false
+	};
+	// Each stage owns a slice of the bar; downloading is by far the longest.
+	var STAGE_BASE = [0, 0.06, 0.82, 0.94, 1];
+
+	var STATUS_HE = [
+		[/retriev|server info/i, 'מקבל מידע מהשרת'],
+		[/sending client info|client info/i, 'שולח פרטי שחקן'],
+		[/workshop complete/i, 'הורדת הוורקשופ הושלמה'],
+		[/mount/i, 'טוען תוספים'],
+		[/workshop|downloading/i, 'מוריד תוכן'],
+		[/starting lua/i, 'מפעיל את המשחק'],
+		[/lua/i, 'טוען קוד משחק'],
+		[/precach/i, 'מכין מודלים'],
+		[/parsing|game info/i, 'קורא את נתוני המשחק'],
+		[/map|loading/i, 'טוען את העיר'],
+		[/connect/i, 'מתחבר לשרת']
+	];
+
+	function stageFor(status) {
+		var s = status.toLowerCase();
+		if (/lua|client info sent|spawn/.test(s)) { return 3; }
+		if (/precach|parsing|game info|map|loading|world/.test(s) && !/download/.test(s)) { return 2; }
+		if (/workshop|download|mount|fetch/.test(s)) { return 1; }
+		return 0;
+	}
+
+	function translate(status) {
+		for (var i = 0; i < STATUS_HE.length; i++) { if (STATUS_HE[i][0].test(status)) { return STATUS_HE[i][1]; } }
+		return status;
+	}
+
+	function setStage(n) {
+		if (n > S.stage) { S.stage = n; }
+		var els = $('stages').children;
+		for (var i = 0; i < els.length; i++) {
+			els[i].className = 'stage' + (i < S.stage ? ' done' : (i === S.stage ? ' on' : ''));
+		}
+	}
+
+	function downloadFraction() {
+		var f = 0, any = false;
+		if (S.filesTotal > 0) { f = clamp01(1 - S.filesNeeded / S.filesTotal); any = true; }
+		if (S.wsTotal > 0) { var w = clamp01(S.wsDone / S.wsTotal); f = any ? Math.max(f, w) : w; any = true; }
+		return any ? f : -1;
+	}
+
+	function recompute() {
+		var base = STAGE_BASE[S.stage], next = STAGE_BASE[S.stage + 1];
+		var t = base;
+		if (S.stage === 1) {
+			var f = downloadFraction();
+			if (f >= 0) { t = lerp(base, next, f); }
+		}
+		if (t > S.target) { S.target = t; }
+		if (S.ready) { S.target = 1; }
+
+		var m = '';
+		if (S.filesTotal > 0 && S.filesNeeded > 0) {
+			m = '<b>' + fmt(S.filesTotal - S.filesNeeded) + '</b> / ' + fmt(S.filesTotal) + ' קבצים';
+		} else if (S.wsTotal > 0 && S.stage === 1) {
+			m = 'פריט <b>' + S.wsDone + '</b> מתוך ' + S.wsTotal;
+		} else {
+			m = '&nbsp;';
+		}
+		$('meta').innerHTML = m;
+		$('notice').style.display = (S.filesTotal > 150 || S.wsTotal > 4) && S.stage <= 1 ? 'block' : 'none';
+	}
+
+	function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+	function setStatus(text) {
+		S.status = text;
+		var ws = /(\d+)\s*(?:of|\/)\s*(\d+)/i.exec(text);
+		if (ws && /workshop|download/i.test(text)) { S.wsDone = parseInt(ws[1], 10) - 1; S.wsTotal = parseInt(ws[2], 10); }
+		if (/workshop complete/i.test(text)) { S.wsDone = S.wsTotal; }
+		setStage(stageFor(text));
+		var el = $('status');
+		el.textContent = translate(text);
+		recompute();
+	}
+
+	// --- the five functions GMod calls ---
+	window.GameDetails = function (servername, serverurl, mapname, maxplayers, steamid, gamemode, volume, language) {
+		S.gotDetails = true;
+		if (servername) { $('server').textContent = servername; }
+		if (mapname) { $('map').textContent = mapname; }
+		if (maxplayers) { $('slots').textContent = maxplayers; }
+	};
+	window.SetFilesTotal = function (total) { S.filesTotal = parseInt(total, 10) || 0; if (S.filesNeeded === 0) { S.filesNeeded = S.filesTotal; } setStage(1); recompute(); };
+	window.SetFilesNeeded = function (needed) { S.filesNeeded = parseInt(needed, 10) || 0; setStage(1); recompute(); };
+	window.DownloadingFile = function (fileName) {
+		S.file = String(fileName || '');
+		$('file').textContent = S.file;
+		setStage(1);
+		$('status').textContent = 'מוריד קבצים';
+		recompute();
+	};
+	window.SetStatusChanged = function (status) { setStatus(String(status || '')); };
+
+	// ------------------------------------------------------------------
+	// TIPS
+	// ------------------------------------------------------------------
+	var TIPS = [
+		['הטלפון שלך', 'לחץ <kbd>M</kbd> כדי לפתוח את הטלפון: אנשי קשר, הודעות, מפה, מונית וחירום. צריך לקנות אחד בחנות.'],
+		['מצב חירום', 'משהו קורה? פתח את אפליקציית <b>Emergency</b> בטלפון והמשטרה, הכבאים והפרמדיקים יקבלו קריאה עם המיקום שלך.'],
+		['עזרה ומקשים', 'לחץ <kbd>F1</kbd> בכל רגע לרשימת המקשים, הכישורים והחוקים של השרת.'],
+		['Life Alert', 'קנה Life Alert אצל Ching\'s. אם תתעלף, הוא יזעיק פרמדיקים אליך אוטומטית, גם כשאתה לא יכול להתקשר.'],
+		['הצטרפות לעבודה', 'משטרה, כבאות, פרמדיקים, מכונאים, נהגי אוטובוס ועוד. לך ל-NPC המתאים ולחץ <kbd>E</kbd> כדי להתקבל.'],
+		['המכונאי', 'מכונאי מתקן רכב פי 10 מהר יותר מאזרח רגיל, וגורר רכבים עם <kbd>L</kbd> מהמשאית.'],
+		['נעילת רכב', 'צרור המפתחות שלך נועל ופותח את הבית ואת הרכב. רכב נעול חוסם את כל הדלתות, גם לנוסעים.'],
+		['ארגונים', 'לחץ <kbd>F2</kbd> כדי לפתוח או לנהל ארגון. לחברי ארגון יש צ\'אט משותף וערוץ קולי בטלפון.'],
+		['להיות ראש עיר', 'הירשם כמועמד אצל פקיד המחוז. ראש העיר מקבל לימוזינה ויכול לגייס את השירות החשאי.'],
+		['כסף ראשון', 'אין לך כסף? כל אזרח מקבל משכורת. עבודה ממשלתית משלמת יותר, ויש גם דיג, בישול ויצירה.'],
+		['שוטרים', 'הטייזר של המשטרה יורה חיצים אמיתיים. אפשר לפספס, ויש רק שלוש מחסניות.'],
+		['קזינו', 'בקזינו של העיר אפשר לשחק בלאק ג\'ק עם צ\'יפים. לא להמר על כסף שאתה לא מוכן להפסיד.']
+	];
+	var tipIdx = Math.floor(Math.random() * TIPS.length), tipStart = 0, TIP_MS = 8500;
+	function showTip() {
+		var b = $('tipBody');
+		b.className = 'body out';
+		setTimeout(function () {
+			tipIdx = (tipIdx + 1) % TIPS.length;
+			b.children[0].innerHTML = TIPS[tipIdx][0];
+			b.children[1].innerHTML = TIPS[tipIdx][1];
+			b.className = 'body';
+			tipStart = now();
+		}, 450);
+	}
+
+	// ------------------------------------------------------------------
+	// MAIN LOOP
+	// ------------------------------------------------------------------
+	var last = now(), lastPctText = '', logoGlitchAt = 3000;
+	function frame() {
+		var t = now(), dt = Math.min(50, t - last); last = t;
+
+		drawMap(t, dt);
+
+		grainT += dt;
+		if (grainT > 90) { drawGrain(); grainT = 0; }
+
+		// progress: creep inside a stage so the bar never looks frozen, never past the next stage
+		if (!S.ready && S.stage !== 1) {
+			var ceil = STAGE_BASE[S.stage + 1] - 0.01;
+			if (S.target < ceil) { S.target += (ceil - S.target) * dt * 0.00012; }
+		}
+		S.shown += (S.target - S.shown) * Math.min(1, dt * 0.004);
+		if (S.target - S.shown < 0.001) { S.shown = S.target; }
+		var p = clamp01(S.shown);
+		$('fill').style.width = (p * 100).toFixed(2) + '%';
+		$('head').style.left = (p * 100).toFixed(2) + '%';
+		var pt = String(Math.floor(p * 100));
+		if (pt !== lastPctText) { $('pct').textContent = pt; lastPctText = pt; }
+
+		var barRect = $('fill').getBoundingClientRect();
+		if (S.target - S.shown > 0.0005 || Math.random() < 0.15) {
+			emitSparks(barRect.right, barRect.top + barRect.height / 2, S.target - S.shown > 0.003 ? 3 : 1);
+		}
+		drawSparks(dt);
+
+		var el = Math.floor((t - S.started) / 1000);
+		$('elapsed').textContent = Math.floor(el / 60) + ':' + ('0' + (el % 60)).slice(-2);
+
+		var tp = clamp01((t - tipStart) / TIP_MS);
+		$('tipRing').setAttribute('stroke-dashoffset', (94.25 * (1 - tp)).toFixed(2));
+		if (tp >= 1) { tipStart = t + 1e9; showTip(); }
+
+		logoGlitchAt -= dt;
+		if (logoGlitchAt <= 0) {
+			var lg = $('logo'); lg.className = 'logo glitch';
+			setTimeout(function () { lg.className = 'logo'; }, 330);
+			logoGlitchAt = rand(4000, 9000);
+		}
+
+		raf(frame);
+	}
+
+	// ------------------------------------------------------------------
+	// DEMO: what a first join looks like, for viewing in a browser
+	// ------------------------------------------------------------------
+	function demo() {
+		window.GameDetails('IsraelRP', '', 'rp_evocity_v33x', '64', '76561198000000000', 'perp', '0.4', 'he');
+		var steps = [
+			[600, function () { SetStatusChanged('Retrieving server info'); }],
+			[1600, function () { SetStatusChanged('Sending client info'); }],
+			[1400, function () { SetStatusChanged('Downloading workshop item 1 of 6'); }]
+		];
+		var items = 6;
+		for (var i = 2; i <= items; i++) {
+			(function (n) { steps.push([1700, function () { SetStatusChanged('Downloading workshop item ' + n + ' of ' + items); }]); }(i));
+		}
+		steps.push([1500, function () { SetStatusChanged('Workshop Complete'); SetFilesTotal(240); }]);
+		var files = ['materials/perp/hud/heart.png', 'models/keys/key.mdl', 'materials/perp/phone/citymap.jpg', 'sound/perp/ring.wav', 'models/cigarette.mdl', 'materials/models/weapons/v_crowbar/axe.vtf'];
+		for (var f = 0; f < 24; f++) {
+			(function (k) { steps.push([220, function () { DownloadingFile(files[k % files.length]); SetFilesNeeded(240 - (k + 1) * 10); }]); }(f));
+		}
+		steps.push([900, function () { $('file').textContent = ''; SetStatusChanged('Mounting Addons'); }]);
+		steps.push([1800, function () { SetStatusChanged('Parsing game info'); }]);
+		steps.push([2400, function () { SetStatusChanged('Precaching models'); }]);
+		steps.push([2600, function () { SetStatusChanged('Starting Lua...'); }]);
+		steps.push([2600, function () { S.ready = true; setStage(4); $('panel').className = 'panel ready'; $('status').textContent = 'ברוך הבא לעיר'; recompute(); }]);
+		var idx = 0;
+		function run() { if (idx >= steps.length) { return; } var s = steps[idx++]; setTimeout(function () { s[1](); run(); }, s[0]); }
+		run();
+	}
+
+	// ------------------------------------------------------------------
+	// boot
+	// ------------------------------------------------------------------
+	window.addEventListener('resize', resize);
+	window.addEventListener('mousemove', function (e) { mouseX = e.clientX / W - 0.5; mouseY = e.clientY / H - 0.5; });
+
+	resize();
+	drawGrain();
+	setStage(0);
+	showTip();
+	raf(frame);
+
+	if (/[?&]demo/.test(location.search)) { setTimeout(demo, 400); }
+	else { setTimeout(function () { if (!S.gotDetails) { demo(); } }, 1500); }
+}());
+</script>
+</body>
+</html>
