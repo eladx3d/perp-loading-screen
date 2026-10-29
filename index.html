@@ -216,9 +216,24 @@ kbd {
 	background: linear-gradient(#3a3a48, #262630); border: 1px solid #4a4a5c; border-bottom-width: 3px;
 }
 
+/* ---------- 64-bit recommendation ---------- */
+.perf {
+	position: absolute; left: 44px; top: 92px; width: 330px;
+	padding: 15px 18px 14px; border-radius: 14px; font-size: 13.5px; line-height: 1.55; color: #d8e6dc;
+	background: linear-gradient(160deg, rgba(20,44,32,.82), rgba(14,24,20,.82));
+	border: 1px solid rgba(80,220,140,.35); box-shadow: 0 0 34px rgba(80,220,140,.14), 0 18px 40px rgba(0,0,0,.45);
+	opacity: 0; -webkit-animation: up 1s 2.4s ease forwards; animation: up 1s 2.4s ease forwards;
+}
+.perf h4 { margin: 0 0 6px; font-size: 16px; font-weight: 800; color: #fff; }
+.perf h4 span { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 6px; font-size: 11px; letter-spacing: 1px; color: #0c1a12; background: #50dc8c; vertical-align: 2px; }
+.perf ol { margin: 6px 0 0; padding: 0 18px 0 0; }
+.perf li { margin: 1px 0; }
+.perf .branch { direction: ltr; unicode-bidi: embed; font-weight: 800; color: #b6ffd8; }
+.perf .why { margin-top: 7px; color: #9fb8a8; font-size: 12.5px; }
+
 /* ---------- first-download notice ---------- */
 .notice {
-	position: absolute; left: 44px; top: 50%; width: 330px; margin-top: -40px;
+	position: absolute; left: 44px; top: 50%; width: 330px; margin-top: 40px;
 	padding: 16px 18px; border-radius: 14px; font-size: 14px; line-height: 1.55; color: #d9cfee;
 	background: rgba(120,70,255,.12); border: 1px solid rgba(190,60,255,.35);
 	box-shadow: 0 0 40px rgba(120,70,255,.18);
@@ -230,10 +245,22 @@ kbd {
 .ready .status { color: #50dc8c; }
 .ready .bar .fill { background: linear-gradient(90deg, #2bb673, #50dc8c, #b6ffd8); box-shadow: 0 0 22px rgba(80,220,140,.8); }
 
+/* Promo stills from the server (tools/promo/), cross-faded over the city map with a slow zoom. */
+#shots { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; pointer-events: none; }
+#shots .shot {
+	position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+	background-size: cover; background-position: 50% 50%; opacity: 0;
+	-webkit-transition: opacity 1.6s ease-in-out; transition: opacity 1.6s ease-in-out;
+	-webkit-transform: scale(1.04); transform: scale(1.04);
+}
+#shots .shot.on { opacity: 1; -webkit-animation: kenburns 9s linear forwards; animation: kenburns 9s linear forwards; }
+@-webkit-keyframes kenburns { from { -webkit-transform: scale(1.04) translate(0,0); } to { -webkit-transform: scale(1.13) translate(-1.5%,-1%); } }
+@keyframes kenburns { from { transform: scale(1.04) translate(0,0); } to { transform: scale(1.13) translate(-1.5%,-1%); } }
 </style>
 </head>
 <body>
 <canvas id="scene"></canvas>
+<div id="shots"></div>
 <div class="sweep"></div>
 <div class="pool"></div>
 <div class="vignette"></div>
@@ -265,6 +292,17 @@ kbd {
 		</div>
 		<div class="tagline">Israel <span>&bull;</span> Police <span>&bull;</span> Roleplay</div>
 		<div class="server" id="server">מתחבר לעיר...</div>
+	</div>
+
+	<div class="perf" id="perf">
+		<h4>רוצה FPS גבוה יותר? <span>מומלץ</span></h4>
+		עבור לגרסת <b>64 ביט</b> של Garry's Mod:
+		<ol>
+			<li>ב-Steam, קליק ימני על Garry's Mod &larr; <b>מאפיינים</b></li>
+			<li>לשונית <b>בטא</b> (Betas)</li>
+			<li>בחר <span class="branch">x86-64 - Chromium + 64-bit binaries</span></li>
+		</ol>
+		<div class="why">יותר זיכרון, פחות קריסות וביצועים טובים יותר בעיר. כבר עשית? אפשר להתעלם.</div>
 	</div>
 
 	<div class="notice" id="notice">
@@ -821,18 +859,22 @@ kbd {
 	// TIPS
 	// ------------------------------------------------------------------
 	var TIPS = [
-		['הטלפון שלך', 'לחץ <kbd>M</kbd> כדי לפתוח את הטלפון: אנשי קשר, הודעות, מפה, מונית וחירום. צריך לקנות אחד בחנות.'],
-		['מצב חירום', 'משהו קורה? פתח את אפליקציית <b>Emergency</b> בטלפון והמשטרה, הכבאים והפרמדיקים יקבלו קריאה עם המיקום שלך.'],
-		['עזרה ומקשים', 'לחץ <kbd>F1</kbd> בכל רגע לרשימת המקשים, הכישורים והחוקים של השרת.'],
-		['Life Alert', 'קנה Life Alert אצל Ching\'s. אם תתעלף, הוא יזעיק פרמדיקים אליך אוטומטית, גם כשאתה לא יכול להתקשר.'],
-		['הצטרפות לעבודה', 'משטרה, כבאות, פרמדיקים, מכונאים, נהגי אוטובוס ועוד. לך ל-NPC המתאים ולחץ <kbd>E</kbd> כדי להתקבל.'],
-		['המכונאי', 'מכונאי מתקן רכב פי 10 מהר יותר מאזרח רגיל, וגורר רכבים עם <kbd>L</kbd> מהמשאית.'],
-		['נעילת רכב', 'צרור המפתחות שלך נועל ופותח את הבית ואת הרכב. רכב נעול חוסם את כל הדלתות, גם לנוסעים.'],
-		['ארגונים', 'לחץ <kbd>F2</kbd> כדי לפתוח או לנהל ארגון. לחברי ארגון יש צ\'אט משותף וערוץ קולי בטלפון.'],
-		['להיות ראש עיר', 'הירשם כמועמד אצל פקיד המחוז. ראש העיר מקבל לימוזינה ויכול לגייס את השירות החשאי.'],
-		['כסף ראשון', 'אין לך כסף? כל אזרח מקבל משכורת. עבודה ממשלתית משלמת יותר, ויש גם דיג, בישול ויצירה.'],
-		['שוטרים', 'הטייזר של המשטרה יורה חיצים אמיתיים. אפשר לפספס, ויש רק שלוש מחסניות.'],
-		['קזינו', 'בקזינו של העיר אפשר לשחק בלאק ג\'ק עם צ\'יפים. לא להמר על כסף שאתה לא מוכן להפסיד.']
+		['המקשים שכדאי להכיר', '<kbd>F1</kbd> עזרה וחוקים, <kbd>F3</kbd> התיק שלך, <kbd>F2</kbd> ארגון, <kbd>F4</kbd> נכסים. <kbd>K</kbd> מראה או מסתיר את כרטיס המקשים שעל המסך.'],
+		['הטלפון שלך', 'החזק <kbd>M</kbd> כדי להוציא את הטלפון: הודעות, Waze, מונית, Wolt, בנק וחירום. את הטלפון קונים בחנות.'],
+		['קרה משהו?', 'פתח את אפליקציית <b>חירום</b> בטלפון. שוטרים, כבאים ופרמדיקים יקבלו קריאה עם המיקום המדויק שלך.'],
+		['המשכורת בבנק', 'המשכורת נכנסת ישר לבנק. מזומן מושכים רק ב<b>כספומט</b>, והחנויות הגדולות מחייבות בכרטיס.'],
+		['שטרות אמיתיים', 'בארנק שלך יש שטרות של 20, 50, 100 ו-200. נתקעת עם שטר גדול? כל מוכר בחנות יכול לפרוט לך.'],
+		['הכסף הראשון', 'אסוף בקבוקים ריקים מהמדרכות ומכור אותם ב-<b>Yellow</b>, או חפש בפחי אשפה (החזק <kbd>E</kbd>). תמיד יש משהו למצוא.'],
+		['דיג באגם', 'קנה חכה בחנות הדיג שליד האגם. את הדגים מוכרים, או מבשלים על כיריים לארוחה טובה.'],
+		['נהיגה', '<kbd>G</kbd> מניע את הרכב, <kbd>F</kbd> מדליק פנסים (החזק לאורות חניה). <kbd>E</kbd> בגב הרכב פותח את תא המטען.'],
+		['כמה אתה סוחב', 'לכל חפץ יש משקל. הכישור <b>Strength</b> קובע כמה קילו ואיזה נשקים תוכל לסחוב איתך.'],
+		['להחליף בגדים', 'מחליפים בגדים ליד הארון או המחסן האישי שלך. רוצה מראה חדש? יש חנות בגדים, ספר ומנתח פלסטי.'],
+		['למצוא עבודה', 'משטרה, ימ"מ, כבאות, מד"א, מכונאים, מוניות ואוטובוסים. גש ל-NPC של העבודה ולחץ <kbd>E</kbd>.'],
+		['להרים דברים', 'הורד את האגרופים עם <kbd>R</kbd> ולחץ על <kbd>M1</kbd> כדי להרים חפץ או לגרור גופה. לחיצה נוספת משחררת.'],
+		['כדורגל', 'יש מגרש שכונתי צפונית לחווה. רוץ לתוך הכדור כדי לכדרר, <kbd>M1</kbd> לבעיטה (החזק לעוצמה).'],
+		['להיות ראש העיר', 'הירשם כמועמד אצל פקיד המחוז. ראש העיר נוסע בסובורבן שחור ויכול לגייס לעצמו מאבטחים.'],
+		['ארגונים', '<kbd>F2</kbd> פותח או מנהל ארגון. לחברי הארגון יש צ\'אט משותף, מחסן וערוץ קולי בטלפון.'],
+		['קזינו', 'צ\'יפים קונים בקופה. בלאק ג\'ק, רולטה ומכונות מזל. אל תהמר על כסף שאתה לא מוכן להפסיד.']
 	];
 	var tipIdx = Math.floor(Math.random() * TIPS.length), tipStart = 0, TIP_MS = 8500;
 	function showTip() {
@@ -939,6 +981,49 @@ kbd {
 	if (/[?&]demo/.test(location.search)) { setTimeout(demo, 400); }
 	else { setTimeout(function () { if (!S.gotDetails) { demo(); } }, 1500); }
 }());
+</script>
+<script>
+// Promo stills: shots/01.jpg .. shots/16.jpg, each held 7 s, cross-faded. A still that fails to
+// load is skipped, so the map underneath shows through rather than a black frame.
+(function () {
+	var COUNT = 16, HOLD = 7000, box = document.getElementById('shots');
+	if (!box) return;
+	var order = [], els = [], i;
+	for (i = 2; i <= COUNT; i++) order.push(i);
+	for (i = order.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = order[i]; order[i] = order[j]; order[j] = t; }
+	order.unshift(1);
+	function make(n) {
+		var d = document.createElement('div'), url = 'shots/' + (n < 10 ? '0' : '') + n + '.jpg', img = new Image();
+		d.className = 'shot'; d.ok = false;
+		img.onload = function () { d.style.backgroundImage = 'url(' + url + ')'; d.ok = true; };
+		img.src = url;
+		box.appendChild(d);
+		return d;
+	}
+	for (i = 0; i < order.length; i++) els.push(make(order[i]));
+	var cur = -1;
+	function next() {
+		var tries = 0, k = cur;
+		do { k = (k + 1) % els.length; tries++; } while (!els[k].ok && tries <= els.length);
+		if (els[k].ok && k !== cur) {
+			if (cur >= 0) els[cur].className = 'shot';
+			els[k].className = 'shot';
+			void els[k].offsetWidth;
+			els[k].className = 'shot on';
+			cur = k;
+		}
+		setTimeout(next, cur < 0 ? 400 : HOLD);
+	}
+	next();
+})();
+</script>
+<script>
+// The 64-bit card hides itself on a 64-bit build: GMod's x86-64 branch runs a 64-bit Chromium,
+// whose user agent says Win64/x64. The main branch (32-bit) does not. ?perf forces it on.
+(function () {
+	var el = document.getElementById('perf'), ua = navigator.userAgent || '';
+	if (el && /Win64|x64|x86_64/.test(ua) && location.search.indexOf('perf') < 0) el.style.display = 'none';
+})();
 </script>
 </body>
 </html>
