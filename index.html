@@ -26,16 +26,17 @@ html, body {
 	font-family: 'Heebo', 'Segoe UI', Arial, sans-serif;
 	-webkit-user-select: none; user-select: none; cursor: default;
 }
-#scene { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
-#grain { position: absolute; left: 0; top: 0; width: 100%; height: 100%; opacity: .07; pointer-events: none; mix-blend-mode: overlay; }
+#scene { display: none; }   /* the city map is retired: the photos are the background from the first frame */
+#grain { display: none; }   /* film grain retired with the map: it muddied the text */
 .vignette {
 	position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none;
 	background: radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 45%, rgba(3,2,8,.55) 78%, rgba(3,2,8,.92) 100%);
 }
 .pool {
 	position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none;
-	background: radial-gradient(ellipse 55% 30% at 50% 33%, rgba(5,3,12,.62) 0%, rgba(5,3,12,0) 100%),
-	            linear-gradient(to top, rgba(5,3,12,.9) 0%, rgba(5,3,12,0) 34%);
+	background: radial-gradient(ellipse 50% 26% at 50% 31%, rgba(4,3,10,.72) 0%, rgba(4,3,10,0) 100%),
+	            linear-gradient(to top, rgba(4,3,10,.96) 0%, rgba(4,3,10,.75) 16%, rgba(4,3,10,0) 40%),
+	            linear-gradient(to bottom, rgba(4,3,10,.8) 0%, rgba(4,3,10,0) 18%);
 }
 .corner { position: absolute; width: 34px; height: 34px; border-color: rgba(190,60,255,.55); border-style: solid; pointer-events: none; }
 .corner.tl { left: 18px; top: 18px; border-width: 2px 0 0 2px; }
@@ -56,7 +57,7 @@ html, body {
 @keyframes sweep { from { transform: translateY(0); } to { transform: translateY(520%); } }
 
 /* #ui is laid out at a fixed 1920x1080-ish design size and scaled to the window by fit(). */
-#ui { position: absolute; left: 0; top: 0; width: 100%; height: 100%; -webkit-transform-origin: 0 0; transform-origin: 0 0; }
+#ui { position: absolute; left: 0; top: 0; width: 100%; height: 100%; -webkit-transform-origin: 0 0; transform-origin: 0 0; text-shadow: 0 2px 6px rgba(0,0,0,.85); }
 
 /* ---------- top bar ---------- */
 .top {
@@ -72,12 +73,12 @@ html, body {
 	display: flex; align-items: center; justify-content: center;
 	font-family: 'Rubik Mono One', 'Heebo', sans-serif; font-size: 18px; color: #fff;
 }
-.brand .t1 { font-weight: 800; font-size: 22px; letter-spacing: .5px; }
+.brand .t1 { font-weight: 900; font-size: 26px; letter-spacing: .5px; color: #fff; }
 .brand .t2 { font-size: 13px; color: #9a9aaa; margin-top: -2px; direction: ltr; text-align: right; }
 .chips { display: flex; direction: ltr; }
 .chip {
-	margin-left: 10px; padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 600;
-	background: rgba(26,26,32,.72); border: 1px solid rgba(255,255,255,.08); color: #c9c9d6;
+	margin-left: 10px; padding: 9px 16px; border-radius: 10px; font-size: 15px; font-weight: 700;
+	background: rgba(10,10,14,.88); border: 1px solid rgba(255,255,255,.14); color: #d8d8e4;
 	box-shadow: 0 6px 20px rgba(0,0,0,.35);
 }
 .chip b { color: #fff; font-weight: 800; margin-left: 6px; }
@@ -125,12 +126,12 @@ html, body {
 @keyframes up { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
 
 .tagline {
-	margin-top: 18px; font-size: 15px; font-weight: 600; letter-spacing: 9px; text-transform: uppercase; color: #b8a6d9;
+	margin-top: 18px; font-size: 19px; font-weight: 800; letter-spacing: 9px; text-transform: uppercase; color: #efe6ff;
 	opacity: 0; -webkit-animation: up 1s 1.2s ease forwards; animation: up 1s 1.2s ease forwards;
 }
 .tagline span { color: #be3cff; }
 .server {
-	margin-top: 14px; font-size: 18px; font-weight: 400; color: #8f8fa3; direction: rtl; unicode-bidi: plaintext;
+	margin-top: 14px; font-size: 24px; font-weight: 700; color: #ffffff; direction: rtl; unicode-bidi: plaintext;
 	opacity: 0; -webkit-animation: up 1s 1.5s ease forwards; animation: up 1s 1.5s ease forwards;
 }
 
@@ -144,33 +145,33 @@ html, body {
 .status-col { -webkit-box-flex: 1; flex: 1; min-width: 0; margin-left: 24px; }
 .stages { display: flex; margin-bottom: 18px; }
 .stage {
-	display: flex; align-items: center; margin-left: 22px; font-size: 14px; font-weight: 600; color: #6a6a7c;
+	display: flex; align-items: center; margin-left: 26px; font-size: 17px; font-weight: 700; color: #a4a4b6;
 	-webkit-transition: color .5s; transition: color .5s;
 }
 .stage i {
-	display: inline-block; width: 26px; height: 26px; line-height: 26px; text-align: center; border-radius: 50%;
-	margin-left: 9px; font-style: normal; font-size: 12px; font-weight: 800;
-	background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); color: #777;
+	display: inline-block; width: 30px; height: 30px; line-height: 30px; text-align: center; border-radius: 50%;
+	margin-left: 10px; font-style: normal; font-size: 14px; font-weight: 800; text-shadow: none;
+	background: rgba(10,10,14,.85); border: 1px solid rgba(255,255,255,.25); color: #c8c8d6;
 	-webkit-transition: all .5s; transition: all .5s;
 }
 .stage.on { color: #fff; }
 .stage.on i { background: linear-gradient(135deg,#be3cff,#7846ff); border-color: transparent; color: #fff; box-shadow: 0 0 16px rgba(190,60,255,.8); -webkit-animation: pulse 1.2s infinite; animation: pulse 1.2s infinite; }
-.stage.done { color: #b9b9c8; }
+.stage.done { color: #d6f5e3; }
 .stage.done i { background: rgba(80,220,140,.15); border-color: rgba(80,220,140,.6); color: #50dc8c; }
 
-.status { font-size: 24px; font-weight: 800; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.status { font-size: 32px; font-weight: 900; color: #fff; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .status .cursor { display: inline-block; width: 9px; height: 22px; background: #be3cff; margin-right: 6px; vertical-align: -3px; -webkit-animation: pulse 1s steps(1) infinite; animation: pulse 1s steps(1) infinite; }
-.file { font-size: 13px; color: #7d7d92; direction: ltr; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; height: 18px; font-family: Consolas, 'Courier New', monospace; }
+.file { font-size: 15px; color: #b4b4c8; direction: ltr; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; height: 18px; font-family: Consolas, 'Courier New', monospace; }
 
 .pct { text-align: left; direction: ltr; min-width: 200px; }
-.pct .num { font-family: 'Rubik Mono One', 'Heebo', sans-serif; font-size: 64px; line-height: 1; color: #fff; text-shadow: 0 0 26px rgba(190,60,255,.7); }
+.pct .num { font-family: 'Rubik Mono One', 'Heebo', sans-serif; font-size: 72px; line-height: 1; color: #fff; text-shadow: 0 0 26px rgba(190,60,255,.7); }
 .pct .num small { font-size: 26px; color: #be3cff; margin-left: 4px; }
-.pct .meta { font-size: 13px; color: #8a8a9c; margin-top: 6px; font-weight: 600; }
+.pct .meta { font-size: 16px; color: #c4c4d4; margin-top: 6px; font-weight: 600; }
 .pct .meta b { color: #d6d6e2; }
 
 .bar {
-	position: relative; height: 12px; margin-top: 18px; border-radius: 99px; overflow: visible;
-	background: rgba(255,255,255,.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07);
+	position: relative; height: 14px; margin-top: 18px; border-radius: 99px; overflow: visible;
+	background: rgba(10,10,14,.85); box-shadow: inset 0 0 0 1px rgba(255,255,255,.18);
 	direction: ltr;
 }
 .bar .ticks { position: absolute; left: 0; top: 0; width: 100%; height: 100%; border-radius: 99px; opacity: .5;
@@ -196,46 +197,53 @@ html, body {
 
 /* ---------- tip card ---------- */
 .tip {
-	position: absolute; right: 44px; top: 50%; width: 360px; margin-top: -40px;
-	padding: 20px 22px 18px; border-radius: 16px;
-	background: linear-gradient(160deg, rgba(34,34,42,.85), rgba(18,18,24,.85));
-	border: 1px solid rgba(255,255,255,.08);
+	position: absolute; right: 44px; top: 50%; width: 440px; margin-top: -70px;
+	padding: 22px 26px 22px; border-radius: 16px;
+	background: rgba(10,10,14,.93);
+	border: 1px solid rgba(190,60,255,.45);
 	box-shadow: 0 20px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05);
 	opacity: 0; -webkit-animation: up 1s 1.8s ease forwards; animation: up 1s 1.8s ease forwards;
 }
 .tip:before { content: ''; position: absolute; right: 0; top: 18px; bottom: 18px; width: 3px; border-radius: 3px; background: linear-gradient(#be3cff, #7846ff); box-shadow: 0 0 12px #be3cff; }
-.tip .hd { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 800; letter-spacing: 2px; color: #be3cff; margin-bottom: 12px; }
+.tip .hd { display: flex; align-items: center; justify-content: space-between; font-size: 15px; font-weight: 800; letter-spacing: 1px; color: #d48bff; margin-bottom: 12px; }
 .tip .hd svg { width: 22px; height: 22px; -webkit-transform: rotate(-90deg); transform: rotate(-90deg); }
-.tip .body { min-height: 76px; -webkit-transition: opacity .45s, -webkit-transform .45s; transition: opacity .45s, transform .45s; }
+.tip .body { min-height: 110px; -webkit-transition: opacity .45s, -webkit-transform .45s; transition: opacity .45s, transform .45s; }
 .tip .body.out { opacity: 0; -webkit-transform: translateX(-14px); transform: translateX(-14px); }
-.tip h3 { margin: 0 0 6px; font-size: 19px; font-weight: 800; color: #fff; }
-.tip p { margin: 0; font-size: 15px; line-height: 1.55; color: #b4b4c4; }
+.tip h3 { margin: 0 0 8px; font-size: 26px; font-weight: 900; color: #fff; }
+.tip p { margin: 0; font-size: 19px; line-height: 1.6; color: #ececf4; }
+.tip p b { color: #fff; }
 kbd {
-	display: inline-block; min-width: 14px; padding: 1px 7px; margin: 0 2px; border-radius: 6px;
-	font-family: 'Heebo', sans-serif; font-size: 13px; font-weight: 800; color: #fff; text-align: center; direction: ltr;
+	display: inline-block; min-width: 16px; padding: 1px 8px; margin: 0 3px; border-radius: 6px; text-shadow: none;
+	font-family: 'Heebo', sans-serif; font-size: 16px; font-weight: 900; color: #fff; text-align: center; direction: ltr;
 	background: linear-gradient(#3a3a48, #262630); border: 1px solid #4a4a5c; border-bottom-width: 3px;
 }
 
-/* ---------- 64-bit recommendation ---------- */
+/* ---------- 64-bit recommendation: bright red, the one thing a player should act on ---------- */
 .perf {
-	position: absolute; left: 44px; top: 92px; width: 330px;
-	padding: 15px 18px 14px; border-radius: 14px; font-size: 13.5px; line-height: 1.55; color: #d8e6dc;
-	background: linear-gradient(160deg, rgba(20,44,32,.82), rgba(14,24,20,.82));
-	border: 1px solid rgba(80,220,140,.35); box-shadow: 0 0 34px rgba(80,220,140,.14), 0 18px 40px rgba(0,0,0,.45);
-	opacity: 0; -webkit-animation: up 1s 2.4s ease forwards; animation: up 1s 2.4s ease forwards;
+	position: absolute; left: 44px; top: 104px; width: 420px;
+	padding: 18px 22px 16px; border-radius: 14px; font-size: 17px; line-height: 1.55; color: #fff;
+	background: linear-gradient(160deg, #ff1f3d, #c4001f);
+	border: 2px solid #ff6b7d;
+	box-shadow: 0 0 40px rgba(255,30,60,.65), 0 18px 40px rgba(0,0,0,.5);
+	text-shadow: 0 1px 3px rgba(80,0,10,.7);
+	opacity: 0;
+	-webkit-animation: up 1s 1.6s ease forwards, glowred 2.2s 2.6s ease-in-out infinite;
+	animation: up 1s 1.6s ease forwards, glowred 2.2s 2.6s ease-in-out infinite;
 }
-.perf h4 { margin: 0 0 6px; font-size: 16px; font-weight: 800; color: #fff; }
-.perf h4 span { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 6px; font-size: 11px; letter-spacing: 1px; color: #0c1a12; background: #50dc8c; vertical-align: 2px; }
-.perf ol { margin: 6px 0 0; padding: 0 18px 0 0; }
-.perf li { margin: 1px 0; }
-.perf .branch { direction: ltr; unicode-bidi: embed; font-weight: 800; color: #b6ffd8; }
-.perf .why { margin-top: 7px; color: #9fb8a8; font-size: 12.5px; }
+@-webkit-keyframes glowred { 0%,100% { box-shadow: 0 0 40px rgba(255,30,60,.65), 0 18px 40px rgba(0,0,0,.5); } 50% { box-shadow: 0 0 70px rgba(255,40,70,.95), 0 18px 40px rgba(0,0,0,.5); } }
+@keyframes glowred { 0%,100% { box-shadow: 0 0 40px rgba(255,30,60,.65), 0 18px 40px rgba(0,0,0,.5); } 50% { box-shadow: 0 0 70px rgba(255,40,70,.95), 0 18px 40px rgba(0,0,0,.5); } }
+.perf h4 { margin: 0 0 8px; font-size: 23px; font-weight: 900; color: #fff; }
+.perf h4 span { display: inline-block; margin-left: 10px; padding: 2px 10px; border-radius: 6px; font-size: 13px; font-weight: 900; color: #c4001f; background: #fff; vertical-align: 3px; text-shadow: none; }
+.perf ol { margin: 8px 0 0; padding: 0 22px 0 0; }
+.perf li { margin: 3px 0; }
+.perf .branch { direction: ltr; unicode-bidi: embed; font-weight: 900; color: #fff; background: rgba(0,0,0,.28); padding: 1px 6px; border-radius: 5px; }
+.perf .why { margin-top: 9px; color: #ffe1e5; font-size: 15px; }
 
 /* ---------- first-download notice ---------- */
 .notice {
-	position: absolute; left: 44px; top: 50%; width: 330px; margin-top: 40px;
-	padding: 16px 18px; border-radius: 14px; font-size: 14px; line-height: 1.55; color: #d9cfee;
-	background: rgba(120,70,255,.12); border: 1px solid rgba(190,60,255,.35);
+	position: absolute; left: 44px; top: 50%; width: 420px; margin-top: 60px;
+	padding: 18px 22px; border-radius: 14px; font-size: 17px; line-height: 1.6; color: #ece6ff;
+	background: rgba(10,10,14,.93); border: 1px solid rgba(190,60,255,.55);
 	box-shadow: 0 0 40px rgba(120,70,255,.18);
 	display: none; -webkit-animation: up .8s ease forwards; animation: up .8s ease forwards;
 }
@@ -253,6 +261,7 @@ kbd {
 	-webkit-transition: opacity 1.6s ease-in-out; transition: opacity 1.6s ease-in-out;
 	-webkit-transform: scale(1.04); transform: scale(1.04);
 }
+#shots .shot.first { -webkit-transition: none; transition: none; }
 #shots .shot.on { opacity: 1; -webkit-animation: kenburns 9s linear forwards; animation: kenburns 9s linear forwards; }
 @-webkit-keyframes kenburns { from { -webkit-transform: scale(1.04) translate(0,0); } to { -webkit-transform: scale(1.13) translate(-1.5%,-1%); } }
 @keyframes kenburns { from { transform: scale(1.04) translate(0,0); } to { transform: scale(1.13) translate(-1.5%,-1%); } }
@@ -261,12 +270,10 @@ kbd {
 <body>
 <canvas id="scene"></canvas>
 <div id="shots"></div>
-<div class="sweep"></div>
+<canvas id="grain"></canvas>
 <div class="pool"></div>
 <div class="vignette"></div>
 <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
-<div class="scan"></div>
-<canvas id="grain"></canvas>
 
 <div id="ui">
 	<div class="top">
@@ -280,7 +287,6 @@ kbd {
 			<div class="chip"><span class="dot"></span>MAP <b id="map">rp_evocity_v33x</b></div>
 			<div class="chip">SLOTS <b id="slots">--</b></div>
 			<div class="chip">TIME <b id="elapsed">0:00</b></div>
-			<div class="chip"><span class="live">&#9679; LIVE</span>DISPATCH <b id="calls">0</b></div>
 		</div>
 	</div>
 
@@ -295,14 +301,14 @@ kbd {
 	</div>
 
 	<div class="perf" id="perf">
-		<h4>רוצה FPS גבוה יותר? <span>מומלץ</span></h4>
-		עבור לגרסת <b>64 ביט</b> של Garry's Mod:
+		<h4>עבור ל-64 ביט! <span>מומלץ מאוד</span></h4>
+		לביצועים הכי טובים בעיר, הפעל את גרסת ה-<b>64 ביט</b> של Garry's Mod:
 		<ol>
 			<li>ב-Steam, קליק ימני על Garry's Mod &larr; <b>מאפיינים</b></li>
 			<li>לשונית <b>בטא</b> (Betas)</li>
 			<li>בחר <span class="branch">x86-64 - Chromium + 64-bit binaries</span></li>
 		</ol>
-		<div class="why">יותר זיכרון, פחות קריסות וביצועים טובים יותר בעיר. כבר עשית? אפשר להתעלם.</div>
+		<div class="why">יותר FPS, יותר זיכרון ופחות קריסות. כבר עשית? אפשר להתעלם.</div>
 	</div>
 
 	<div class="notice" id="notice">
@@ -312,7 +318,7 @@ kbd {
 
 	<div class="tip">
 		<div class="hd">
-			<span>טיפ</span>
+			<span>טיפ למתחילים</span>
 			<svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="3"></circle><circle id="tipRing" cx="18" cy="18" r="15" fill="none" stroke="#be3cff" stroke-width="3" stroke-linecap="round" stroke-dasharray="94.25" stroke-dashoffset="94.25"></circle></svg>
 		</div>
 		<div class="body" id="tipBody"><h3></h3><p></p></div>
@@ -702,7 +708,7 @@ kbd {
 			}
 			cx.globalAlpha = 1;
 		}
-		$('calls').textContent = openCalls;
+		if ($('calls')) { $('calls').textContent = openCalls; }
 	}
 
 	function polyline(pts) {
@@ -896,10 +902,7 @@ kbd {
 	function frame() {
 		var t = now(), dt = Math.min(50, t - last); last = t;
 
-		drawMap(t, dt);
 
-		grainT += dt;
-		if (grainT > 90) { drawGrain(); grainT = 0; }
 
 		// progress: creep inside a stage so the bar never looks frozen, never past the next stage
 		if (!S.ready && S.stage !== 1) {
@@ -973,8 +976,7 @@ kbd {
 	window.addEventListener('mousemove', function (e) { mouseX = e.clientX / W - 0.5; mouseY = e.clientY / H - 0.5; });
 
 	resize();
-	drawGrain();
-	setStage(0);
+		setStage(0);
 	showTip();
 	raf(frame);
 
@@ -1007,12 +1009,12 @@ kbd {
 		do { k = (k + 1) % els.length; tries++; } while (!els[k].ok && tries <= els.length);
 		if (els[k].ok && k !== cur) {
 			if (cur >= 0) els[cur].className = 'shot';
-			els[k].className = 'shot';
+			els[k].className = cur < 0 ? 'shot first' : 'shot';
 			void els[k].offsetWidth;
 			els[k].className = 'shot on';
 			cur = k;
 		}
-		setTimeout(next, cur < 0 ? 400 : HOLD);
+		setTimeout(next, cur < 0 ? 50 : HOLD);
 	}
 	next();
 })();
